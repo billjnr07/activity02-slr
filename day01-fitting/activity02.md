@@ -87,7 +87,7 @@ library(tidymodels)
     ## ✖ dplyr::lag()      masks stats::lag()
     ## ✖ yardstick::spec() masks readr::spec()
     ## ✖ recipes::step()   masks stats::step()
-    ## • Learn how to get started at https://www.tidymodels.org/start/
+    ## • Use tidymodels_prefer() to resolve common conflicts.
 
 ![check-in](../README-img/noun-magnifying-glass.png) **Check in**
 
@@ -110,11 +110,21 @@ that reads in the above linked CSV file by doing the following:
 - Assign this data set into a data frame named `hfi` (short for “Human
   Freedom Index”).
 
+``` r
+hfi <- read.csv("https://www.openintro.org/data/csv/hfi.csv")
+dim(hfi)
+```
+
+    ## [1] 1458  123
+
 After doing this and viewing the loaded data, answer the following
 questions:
 
-1.  What are the dimensions of the dataset? What does each row
-    represent?
+1.  What are the dimensions of the dataset? The dimensions are 1458 rows
+    and 123 columns
+
+2.  What does each row represent? Each row represents an individual data
+    entry or record of an individual country in a particular year
 
 The dataset spans a lot of years. We are only interested in data from
 year 2016. In the R code chunk below titled `hfi-2016`, type the code
@@ -122,6 +132,10 @@ that does the following:
 
 - Filter the data `hfi` data frame for year 2016, and
 - Assigns the result to a data frame named `hfi_2016`.
+
+``` r
+hfi_2016 <- filter(hfi, year == 2016)
+```
 
 ### 1. Identify our research question(s)
 
@@ -145,10 +159,43 @@ the following tasks.
     plot to display the distribution of the political pressures and
     controls on media content index, `pf_expression_control`?
 
+Considering the number of data points we have, I would use a histogram
+as that would be a good illustration of the variability of the data and
+easier for comparison. I would use the same graph for both pf scores and
+expression control.
+
 - In the R code chunk below titled `univariable-plots`, type the R code
   that displays this plot for `pf_score`.
 - In the R code chunk below titled `univariable-plots`, type the R code
   that displays this plot for `pf_expression_control`.
+
+``` r
+# Distribution of pf_score
+
+ggplot(hfi_2016, aes(x = countries, y = pf_score)) +
+  geom_histogram(stat = "identity", position = position_dodge(width = 0.5)) + 
+  theme_minimal(base_size = 5) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+    ## Warning in geom_histogram(stat = "identity", position = position_dodge(width =
+    ## 0.5)): Ignoring unknown parameters: `binwidth`, `bins`, and `pad`
+
+![](activity02_files/figure-gfm/univariable-plots-1.png)<!-- -->
+
+``` r
+# Distribution of pf_expression_control
+
+ggplot(hfi_2016, aes(x = countries, y = pf_expression_control)) +
+  geom_histogram(stat = "identity", position = position_dodge(width = 0.5)) + 
+  theme_minimal(base_size = 5) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+    ## Warning in geom_histogram(stat = "identity", position = position_dodge(width =
+    ## 0.5)): Ignoring unknown parameters: `binwidth`, `bins`, and `pad`
+
+![](activity02_files/figure-gfm/univariable-plots-2.png)<!-- -->
 
 4.  Comment on each of these two distributions. Be sure to describe
     their centers, spread, shape, and any potential outliers.
@@ -157,15 +204,34 @@ the following tasks.
     the personal freedom score, `pf_score`, and the political pressures
     and controls on media content index,`pf_expression_control`?
 
+I would use a scatterplot
+
 - In the R code chunk below titled `relationship-plot`, plot this
   relationship using the variable `pf_expression_control` as the
   predictor/explanatory variable.
 
-4.  Does the relationship look linear? If you knew a country’s
-    `pf_expression_control`, or its score out of 10, with 0 being the
-    most, of political pressures and controls on media content, would
-    you be comfortable using a linear model to predict the personal
-    freedom score?
+``` r
+ggplot(hfi_2016, aes(x = pf_expression_control, y = pf_score)) +
+  geom_point(stat = "identity", position = position_dodge(width = 0.5)) + 
+  theme_minimal(base_size = 5) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+    ## Warning: `position_dodge()` requires non-overlapping x intervals
+
+![](activity02_files/figure-gfm/relationship-plot-1.png)<!-- -->
+
+4.  Does the relationship look linear? Yes, relationship is linear.
+
+If you knew a country’s `pf_expression_control`, or its score out of 10,
+with 0 being the most, of political pressures and controls on media
+content, would you be comfortable using a linear model to predict the
+personal freedom score?
+
+I would not be comfortable to using a linear model because if the scores
+are subjective, then that means the scores we got for expression control
+and pf_scores are subjective hence they might not be the most accurate
+data points
 
 #### Challenge
 
@@ -179,6 +245,12 @@ each of those terms.
 What numerical summary would you use to describe the relationship
 between two numerical variables? (hint: explore the `cor` function from
 Base R)
+
+``` r
+cor(hfi_2016$pf_expression_control, hfi_2016$pf_score)
+```
+
+    ## [1] 0.8450646
 
 ### 3. Fit a simple linear regression model
 
@@ -194,13 +266,17 @@ To begin, we will create a `{parsnip}` specification for a linear model.
 - In the code chunk below titled `parsnip-spec`, replace “verbatim” with
   “r” just before the code chunk title.
 
-``` default
+``` r
 lm_spec <- linear_reg() %>%
   set_mode("regression") %>%
   set_engine("lm")
 
 lm_spec
 ```
+
+    ## Linear Regression Model Specification (regression)
+    ## 
+    ## Computational engine: lm
 
 Note that the `set_mode("regression")` is really unnecessary/redundant
 as linear models (`"lm"`) can only be regression models. It is better to
@@ -221,12 +297,18 @@ knitted document to see how this syntax appears.
 - In the code chunk below titled `fit-lm`, replace “verbatim” with “r”
   just before the code chunk title.
 
-``` default
+``` r
 slr_mod <- lm_spec %>% 
   fit(pf_score ~ pf_expression_control, data = hfi_2016)
 
 tidy(slr_mod)
 ```
+
+    ## # A tibble: 2 × 5
+    ##   term                  estimate std.error statistic  p.value
+    ##   <chr>                    <dbl>     <dbl>     <dbl>    <dbl>
+    ## 1 (Intercept)              4.28     0.149       28.8 4.23e-65
+    ## 2 pf_expression_control    0.542    0.0271      20.0 2.31e-45
 
 The above code fits our SLR model, then provides a `tidy` parameter
 estimates table.
@@ -266,13 +348,19 @@ is also where `tidy` is from) to access this information.
 - In the code chunk below titled `glance-lm`, replace “verbatim” with
   “r” just before the code chunk title.
 
-``` default
+``` r
 glance(slr_mod)
 ```
 
+    ## # A tibble: 1 × 12
+    ##   r.squared adj.r.squared sigma statistic  p.value    df logLik   AIC   BIC
+    ##       <dbl>         <dbl> <dbl>     <dbl>    <dbl> <dbl>  <dbl> <dbl> <dbl>
+    ## 1     0.714         0.712 0.799      400. 2.31e-45     1  -193.  391.  400.
+    ## # ℹ 3 more variables: deviance <dbl>, df.residual <int>, nobs <int>
+
 After doing this and running the code, answer the following questions:
 
-7.  What is the value of $R^2$ for this model?
+7.  What is the value of $R^2$ for this model? 0.714
 
 8.  What does this value mean in the context of this model? Think about
     what would a “good” value of $R^2$ would be? Can/should this value
