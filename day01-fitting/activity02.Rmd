@@ -125,6 +125,13 @@ ggplot(hfi_2016, aes(x = countries, y = pf_expression_control)) +
 4. Comment on each of these two distributions. 
   Be sure to describe their centers, spread, shape, and any potential outliers.
 
+# For pf_score
+
+There is no distinct center, the spread and shape are both uniform.
+
+# For pf_expression_control
+
+There is no distinct center, the spread and shape are both uniform
 
 
 3. What type of plot would you use to display the relationship between the personal freedom score, `pf_score`, and the political pressures and controls on media content index,`pf_expression_control`?
@@ -205,11 +212,13 @@ The above code fits our SLR model, then provides a `tidy` parameter estimates ta
 5. Using the `tidy` output, update the below formula with the estimated parameters.
   That is, replace "intercept" and "slope" with the appropriate values
 
-$\hat{\texttt{pf\score}} = intercept + slope \times \texttt{pf\_expression\_control}$
+$\hat{\texttt{pf\score}} = 4.284 + 0.5418 \times \texttt{pf\_expression\_control}$
 
 
 6. Interpret each of the estimated parameters from (5) in the context of this research question.
   That is, what do these values represent?
+  
+  The values represent an increase. For pf_expression_control, if the expression control is 0, then the mean personal freedom score was 4.28. In addition, if we increase expression control by 1 then the mean freedom score increases by 0.542.
 
 ## Day 2
 
@@ -242,6 +251,7 @@ After doing this and running the code, answer the following questions:
   Think about what would a "good" value of $R^2$ would be?
   Can/should this value be "perfect"?
 
+I think this value doesn't represent a value that is as good as we would like it to be. 
 
 
 #### 4.B: Assess with test/train
@@ -257,13 +267,28 @@ Using the `diamonds` example provided to you in the Day 2 `README`, do the follo
 - Create an initial 80-20 split of the `hfi_2016` dataset
 - Using your initial split R object, assign the two splits into a training R object and a testing R object.
 
+```{r train-test}
+# Setting the seed
+set.seed(1)
+
+#putting 80% of the data into a training set
+hfi_2016_split <- initial_split(hfi_2016, prop = 0.80)
+
+#assigning the two splits to data frames
+hfi_2016_train <- training(hfi_2016_split)
+hfi_2016_test <- testing(hfi_2016_split)
+
+hfi_2016_train
+```
+
+
 Now, you will use your training dataset to fit a SLR model.
 
 - In the code chunk below titled `train-fit-lm`, replace "verbatim" with "r" just before the code chunk title and update the data set to your training R object you just created.
 
-```{verbatim train-fit-lm}
+```{r train-fit-lm}
 slr_train <- lm_spec %>% 
-  fit(pf_score ~ pf_expression_control, data = hfi_2016)
+  fit(pf_score ~ pf_expression_control, data = hfi_2016_train)
 
 tidy(slr_train)
 ```
@@ -273,19 +298,21 @@ Notice that you can reuse the `lm_spec` specification because we are still doing
 9. Using the `tidy` output, update the below formula with the estimated parameters.
   That is, replace "intercept" and "slope" with the appropriate values
 
-$\hat{\texttt{pf\score}} = intercept + slope \times \texttt{pf\_expression\_control}$
+$\hat{\texttt{pf\score}} = 4.175 + 0.568 \times \texttt{pf\_expression\_control}$
 
 
 10. Interpret each of the estimated parameters from (10) in the context of this research question.
   That is, what do these values represent?
 
+  The values represent an increase. For pf_expression_control, if the expression control is 0, then the mean personal freedom score was 4.175. In addition, if we increase expression control by 1 then the mean freedom score increases by 0.568.
 
 Now we will assess using the testing data set.
 
-- In the code chunk below titled `train-fit-lm`, replace "verbatim" with "r" just before the code chunk title and update `data_test` to whatever R object you assigned your testing data to above.
+- In the code chunk below titled `train-fit-lm`, replace "verbatim" with "r" just before the code chunk title and update `data_train` to whatever R object you assigned your testing data to above.
   
-```{verbatim glance-test}
-test_aug <- augment(slr_train, new_data = data_test)
+
+```{r glance-test}
+test_aug <- augment(slr_train, new_data = hfi_2016_test)
 test_aug
 ```
 
@@ -299,11 +326,16 @@ Can you identify what each column represents?
 
 The `.fitted` column in this output can also be obtained by using `predict` (i.e., `predict(slr_fit, new_data = data_test)`)
 
+```{r}
+#test_hfi <- predict(slr_fit, new_data = hfi_2016_test)
+#test_hfi
+```
+
 11. Now, using your responses to (7) and (8) as an example, assess how well your model fits your testing data.
   Compare your results here to your results from your Day 1 of this activity.
   Did this model perform any differently?
 
-
+The results were slightly different but they were more or less the same hence one can say the models were more or less accurate when compared to each other
 
 ### Model diagnostics
 
@@ -315,8 +347,8 @@ We can use `broom::augment` to calculate these.
 
 - In the code chunk below titled `augment`, replace "verbatim" with "r" just before the code chunk title and update `data_test` to whatever R object you assigned your testing data to above. 
   
-```{verbatim augment}
-train_aug <- augment(slr_train)
+```{r augment}
+train_aug <- augment(slr_train, new_data = hfi_2016_test)
 
 train_aug
 ```
@@ -327,8 +359,8 @@ We should also verify this condition with a plot of the residuals vs. fitted (pr
 
 - In the code chunk below titled `fitted-residual`, replace "verbatim" with "r" just before the code chunk title. 
   
-```{verbatim fitted-residual}
-ggplot(data = train_aug, aes(x = .fitted, y = .resid)) +
+```{r fitted-residual}
+ggplot(data = train_aug, aes(x = .pred, y = .resid)) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   xlab("Fitted values") +
@@ -342,13 +374,15 @@ After creating the scatterplot on the first layer (first line of code), we overl
 Answer the following question:
 
 11. Is there any apparent pattern in the residuals plot?
+    The points are scattered all over, but they mostly fall within -1 to 1 on the residual scale. 
   What does this indicate about the linearity of the relationship between the two variables?
+Since points are dispersed, we can say a relationship exists
 
 **Nearly normal residuals**: To check this condition, we can look at a histogram of the residuals.
 
 - In the code chunk below titled `residual-histogram`, replace "verbatim" with "r" just before the code chunk title. 
  
-```{verbatim residual-histogram}
+```{r residual-histogram}
 ggplot(data = train_aug, aes(x = .resid)) +
   geom_histogram(binwidth = 0.25) +
   xlab("Residuals")
@@ -358,7 +392,7 @@ Answer the following question:
 
 12. Based on the histogram, does the nearly normal residuals condition appear to be violated?
   Why or why not?
-
+No because residuals are normally distributed
 
 **Constant variability**:
 
